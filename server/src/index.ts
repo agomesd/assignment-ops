@@ -76,6 +76,49 @@ function buildEnpointString(region: string): string {
   return `https://data--${region}.${SERVICE_HOST}`;
 }
 
+server.on("request", (req, res) => {
+  if (!req.url) {
+    res.end("Invalid request");
+    return;
+  }
+
+  const headers = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "OPTIONS, GET",
+    "Access-Control-Max-Age": 2592000, // 30 days
+  };
+
+  if (req.method === "OPTIONS") {
+    res.writeHead(204, headers);
+    res.end();
+    return;
+  }
+
+  if (req.method === "GET") {
+    const { pathname } = new URL(req.url, `http://${req.headers.host}`);
+    switch (pathname) {
+      case "/": {
+        res.writeHead(200, { "Content-Type": "text/plain", ...headers });
+        res.end("Welcome to the server");
+        return;
+      }
+      case "/regions": {
+        res.writeHead(200, { "Content-Type": "application/json", ...headers });
+        res.end(JSON.stringify(SUPPORTED_REGIONS));
+        return;
+      }
+      default: {
+        res.writeHead(404, { "Content-Type": "text/plain", ...headers });
+        res.end("Not found");
+        return;
+      }
+    }
+  }
+
+  res.writeHead(405, { "Content-Type": "text/plain", ...headers });
+  res.end(`${req.method} is not allowed for the request.`);
+});
+
 server.listen(PORT, () => {
   if (!SERVICE_HOST) shutdown("Service host not provided");
   console.log(`Server running on port ${PORT}`);
