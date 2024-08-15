@@ -22,8 +22,13 @@ ws.on("connection", (socket, request) => {
   if (!request.url) return;
   const region = getRegion(request.url);
   const endpoint = buildEnpointString(region);
-  const interval = setInterval(() => {
-    socket.send(endpoint);
+  const interval = setInterval(async () => {
+    const data = await getData(endpoint);
+    if (!data) {
+      socket.send(`Error fetching data - trying again`);
+      return;
+    }
+    socket.send(JSON.stringify(data));
   }, DELAY);
 
   socket.onmessage = (message) => {
@@ -72,5 +77,28 @@ function buildEnpointString(region: string): string {
 }
 
 server.listen(PORT, () => {
+  if (!SERVICE_HOST) shutdown("Service host not provided");
   console.log(`Server running on port ${PORT}`);
 });
+
+function shutdown(message?: string) {
+  server.close(() => {
+    console.log("Server closed: ", message ?? "No message");
+    process.exit(0);
+  });
+}
+
+async function getData(url: string) {
+  try {
+    const res = await fetch(url, { method: "GET" });
+    if (!res.ok) {
+      console.error("Error fetching data: ", res.statusText);
+      return null;
+    }
+    const data = await res.json();
+    return data;
+  } catch (error) {
+    console.error("Error fetching data: ", error);
+    return null;
+  }
+}
