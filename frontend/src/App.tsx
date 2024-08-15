@@ -6,7 +6,7 @@ function App() {
   const queryClient = new QueryClient();
   return (
     <QueryClientProvider client={queryClient}>
-      <div className="bg-slate-950 w-full h-screen flex flex-col">
+      <div className="flex flex-col w-full h-screen bg-slate-950">
         <Header />
         <div className="flex-1 ">
           <Body />

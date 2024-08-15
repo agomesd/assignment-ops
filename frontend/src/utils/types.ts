@@ -29,7 +29,7 @@ export type ServerData = {
             waiting: number;
             workers: number;
           }
-        ];
+        ][];
       };
     };
   };

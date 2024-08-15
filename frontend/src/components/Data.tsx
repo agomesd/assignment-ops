@@ -9,111 +9,109 @@ import {
 import { useSocket } from "../utils/useSocket";
 import { ServerData } from "@/utils/types";
 
+import { Services } from "./Services";
+import { Health } from "./Health";
+import { Roles } from "./Roles";
+import { ServerStats } from "./ServerStats";
+import { WorkersTable } from "./WorkersTable";
+import { Separator } from "./ui/separator";
+// import Spinner from "./Spinner";
+
 const SERVER_HOST = import.meta.env.VITE_SERVER_HOST;
 
-export function Data() {
-  const [data, setData] = useState<ServerData>();
-  const [connected, setConnected] = useState(false);
-  const [region, setRegion] = useState<string>("");
-  const socket = useSocket(`ws://${SERVER_HOST}/${region}`);
+interface DataProps {
+  region: string;
+}
 
-  useEffect(() => {
-    const region = window.location.search.split("=")[1];
-    setRegion(region);
-  }, []);
+export function Data({ region }: DataProps) {
+  const [data, setData] = useState<ServerData | null>(null);
+  const [connected, setConnected] = useState(false);
+  const [lastMessage, setLastMessage] = useState("");
+  const [timeConnected, setTimeConnected] = useState<string>("");
+
+  const socket = useSocket(`ws://${SERVER_HOST}/${region}`);
 
   useEffect(() => {
     if (!socket) return;
     socket.onopen = () => {
-      console.log("Socket opened");
+      setTimeConnected(new Date().toLocaleTimeString());
       setConnected(true);
+      console.log("Socket opened");
     };
 
     socket.onmessage = (message) => {
       const data = JSON.parse(message.data);
+      setLastMessage(new Date().toLocaleTimeString());
       setData(data);
     };
 
     socket.onclose = () => {
       console.log("Socket closed");
+      setData(null);
+      setLastMessage("");
+      setTimeConnected("");
       setConnected(false);
     };
 
     return () => {
       socket.close();
     };
-  }, [socket]);
+  }, [socket, region]);
 
   useEffect(() => {
     console.log(data);
   }, [data]);
 
   return (
-    <Card className="h-full relative">
-      <div className="absolute top-4 right-4 flex items-center gap-2">
-        <span className="text-xs">connected</span>
-        <div
-          className={`rounded-full w-3 h-3 ${
-            connected ? "bg-emerald-500" : "bg-red-500"
-          }`}
-        />
+    <Card className="relative flex flex-col h-full">
+      <div className="absolute flex items-center gap-2 top-4 right-4">
+        {connected ? <span className="text-xs">connected</span> : null}
+        <BoolMarker bool={connected} />
       </div>
       <CardHeader>
         <CardTitle>Socket Data</CardTitle>
-        <CardDescription className="text-foreground">
-          Live feed from <em className="font-bold text-primary">{region}</em>{" "}
-          service
-        </CardDescription>
+        <div className="flex items-center justify-between">
+          <CardDescription>
+            Live feed from <em className="font-bold text-primary">{region}</em>{" "}
+            service
+          </CardDescription>
+          <span className="text-sm">
+            <p>
+              Time connected: <span>{timeConnected}</span>
+            </p>
+            <p>
+              Last message: <span>{lastMessage}</span>
+            </p>
+          </span>
+        </div>
       </CardHeader>
-      <CardContent>
-        {data ? (
-          <div className="flex flex-col gap-4">
-            <Card className="bg-slate-950">
-              <CardHeader>
-                <CardTitle>Services</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex gap-2 items-center">
-                  <span className="text-sm">Database </span>
-                  <BoolMarker bool={data.results.services.database} />
-                </div>
-                <div className="flex gap-2 items-center">
-                  <span className="text-sm">Redis </span>
-                  <BoolMarker bool={data.results.services.database} />
-                </div>
-              </CardContent>
-            </Card>
 
-            <Card className="bg-slate-950">
-              <CardHeader>
-                <CardTitle>Stats</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p>
-                  Online:{" "}
-                  <span className="font-bold">{data.results.stats.online}</span>
-                </p>
-                <p>
-                  Servers Count:{" "}
-                  <span className="font-bold">
-                    {data.results.stats.servers_count}
-                  </span>
-                </p>
-                <p>
-                  Session:{" "}
-                  <span className="font-bold">
-                    {data.results.stats.session}
-                  </span>
-                </p>
-              </CardContent>
-            </Card>
+      {data ? (
+        <CardContent className="flex flex-col flex-1">
+          <div className="flex">
+            <div className="flex items-center justify-center flex-1">
+              <Health
+                server_issue={data.server_issue}
+                status={data.status}
+                strict={data.strict}
+              />
+            </div>
+            <div className="flex items-center justify-center flex-1">
+              <Services services={data.results.services} />
+            </div>
+            <div className="flex items-center justify-center flex-1">
+              <Roles roles={data.roles} />
+            </div>
           </div>
-        ) : (
-          <div>
-            <span>No data</span>
+          <Separator className="my-4" />
+          <div className="flex-1 w-full">
+            <ServerStats stats={data.results.stats} />
           </div>
-        )}
-      </CardContent>
+          <div className="w-full">
+            <WorkersTable workers={data.results.stats.server.workers} />
+          </div>
+        </CardContent>
+      ) : null}
     </Card>
   );
 }

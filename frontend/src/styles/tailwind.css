@@ -15,7 +15,7 @@
     --secondary: #537a5a;
     --secondary-foreground: #fafafa;
     --muted: #909590;
-    --muted-foreground: #010101;
+    --muted-foreground: #fafafa;
     --accent: #9ae19d;
     --accent-foreground: #010101;
     --destructive: #ff715b;
@@ -24,6 +24,11 @@
     --input: #9ae19d;
     --ring: #9ae19d;
     --radius: 0.5rem;
+    --chart-1: #9ae19d;
+    --chart-2: #9ae19d;
+    --chart-3: #9ae19d;
+    --chart-4: #9ae19d;
+    --chart-5: #9ae19d;
   }
 
   .dark {
